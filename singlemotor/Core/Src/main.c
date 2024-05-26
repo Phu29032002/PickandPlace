@@ -55,8 +55,13 @@ static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-char *data = "hello from SMT32\n";
-
+char *data = "done\n";
+char *data1 = "top\n";
+char *data2 = "Received\n";
+char *data3 = "bot\n";
+char *detect = "Detected";
+char *undetect = "Undetected";
+uint8_t buffer[64];
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -81,6 +86,8 @@ char *data = "hello from SMT32\n";
 #define MOTORr_DIR_PIN GPIO_PIN_8
 #define MOTORr_DIR_PORT GPIOA
 
+#define PUMPER_PIN GPIO_PIN_12
+#define PUMPER_PORT GPIOB
 
 uint16_t acc;
 
@@ -93,6 +100,8 @@ uint16_t acc;
 #define MOTORz_DOWN GPIO_PIN_RESET
 #define MOTORr_clockwise GPIO_PIN_SET
 
+#define PUMP_OFF GPIO_PIN_RESET
+#define PUMP_ON GPIO_PIN_SET
 //#define LIMIT_X_PIN GPIO_PIN_10
 //#define LIMIT_X_PORT GPIOB
 #define LIMIT_Y_PIN GPIO_PIN_10
@@ -124,7 +133,7 @@ char numStr[21];
 void delay_1ms(void)
 {
  __HAL_TIM_SetCounter(&htim1, 0);
- while (__HAL_TIM_GetCounter(&htim1)<1);//fix 20 to delay 1ms 10 is a half = 0.5ms
+ while (__HAL_TIM_GetCounter(&htim1)<2);//fix 20 to delay 1ms 10 is a half = 0.5ms
 }
 
 void delay_ms(int time)
@@ -143,69 +152,6 @@ float Setacc(float a)
 	return a;
 }
 
-//void microDelay (uint16_t delay)
-//{
-//
-//  __HAL_TIM_SET_COUNTER(&htim1, 0);
-//  while (__HAL_TIM_GET_COUNTER(&htim1) < delay);
-// //HAL_TIM_Base_Stop(&htim1);
-//}
-
-unsigned long long convertpos(unsigned long long pos, unsigned long long currentpul, int mot, uint8_t *dir)
-{
-	unsigned long long max_pul = -1 , max_pos = -1;
-	switch((int)mot)
-	{
-		case axis_X:
-			max_pos = 200;
-			max_pul = 2000;
-			break;
-		case axis_Y:
-			max_pos = max_pos_y;
-			max_pul = max_pul_y;
-			break;
-		case axis_Z:
-			max_pos = max_pos_z;
-			max_pul = max_pul_z;
-	}
-	if(max_pos != -1 && max_pul != -1 )
-	{
-		float PosperPul = (float)max_pos / (float)max_pul;
-		unsigned long long ReqPul = pos/PosperPul;
-		if(ReqPul > 0)
-		{
-			ReqPul = ReqPul - currentpul;
-			*dir = 0;
-			switch((int)mot)
-			{
-			case axis_X:
-				cx = ReqPul;
-			case axis_Y:
-				cy = ReqPul;
-			case axis_Z:
-				cz = ReqPul;
-			}
-			return ReqPul;
-		}
-		else
-		{
-			ReqPul = currentpul - ReqPul;
-			*dir = 1;
-			switch((int)mot)
-			{
-				case axis_X:
-					cx = ReqPul;
-				case axis_Y:
-					cy = ReqPul;
-				case axis_Z:
-					cz = ReqPul;
-			}
-			return ReqPul;
-		}
-	}
-
-
-}
 
 void MotorY (unsigned long long steps, uint8_t direction)
 {
@@ -322,28 +268,7 @@ void SetHomeZ()
 			}
 }
 
-void control(int mot, unsigned long long pos)
-{
-	switch((int)mot)
-	{
-		case axis_X:
-		{
-			uint8_t dir;
-			unsigned long long reqPulse = convertpos(pos,cx,mot,&dir);
-			MotorX(reqPulse,dir);
-			reqPulse = 0;
-			break;
-		}
-		case axis_Y:
-		{
-			uint8_t dir;
-			uint16_t reqPulse = convertpos(pos,cy,mot,&dir);
-			MotorY(reqPulse,dir);
-			reqPulse = 0;
-			break;
-		}
-	}
-}
+
 
 void ull_to_string(char* str, unsigned long long a) {
     char convert[21]; // Buffer to hold the number plus a null-terminator
@@ -427,30 +352,7 @@ uint16_t convert(float pos, int axis)
 		}
 	}
 }
-//void distance()
-//{
-//
-//	//SetHomeY();
-//	uint16_t AccMax = 2;
-//	 // Buffer to hold string representation of step
-//			HAL_GPIO_WritePin(MOTORy_DIR_PORT, MOTORy_DIR_PIN, MOTORy_FORWARD);
-//			while(HAL_GPIO_ReadPin(LIMIT_Y_PORT,LIMIT_Y_PIN))
-//			{
-//
-//				HAL_GPIO_WritePin(MOTORy_STEP_PORT, MOTORy_STEP_PIN, GPIO_PIN_SET);
-//				delay_ms(AccMax);
-//				HAL_GPIO_WritePin(MOTORy_STEP_PORT, MOTORy_STEP_PIN, GPIO_PIN_RESET);
-//				delay_ms(AccMax);
-//				step++;
-//				//sprintf(dataBuf, "%llu\n", step); // Convert integer to string
-//				//CDC_Transmit_FS((uint8_t*)dataBuf, strlen(dataBuf)); // Transmit the string
-//				//HAL_Delay (1000);
-//			}
-//
-//			 //char numStep[21];
-//			// ull_to_string(numStep, step);
-//			 //CDC_Transmit_FS((uint8_t *)numStep, strlen(numStep));
-//}
+
 void Feeder()
 {
 	MotorX(1000,1);
@@ -468,6 +370,7 @@ void SetHomePNP()
 	  SetHomeY();
 	  delay_ms(500);
 	  MotorY(4000,1);
+
 }
 
 void SetHome2()
@@ -476,21 +379,22 @@ void SetHome2()
 	  //delay_ms(500);
 	  SetHomeX();
 	  delay_ms(500);
-	  MotorX(7000,1);
+	  MotorX(5200,1);
 	  delay_ms(500);
 	  SetHomeY();
 	  delay_ms(500);
-	  MotorY(4000,1);
+	  MotorY(4880,1);
 }
 
 void checkpointcambot()
 {
 	  delay_ms(500);
-	  MotorX(11000,1);
-	  //delay_ms(500);
+	  MotorX(11700,1);
+	  delay_ms(1500);
 //	  SetHomeY();
 //	  delay_ms(500);
-//	  MotorY(4000,1);
+	  MotorY(200,1);
+	  delay_ms(1500);
 }
 
 void checkpointfeeder()
@@ -502,11 +406,83 @@ void checkpointfeeder()
 //	  delay_ms(500);
 //	  MotorY(4000,1);
 }
+//void pick()
+//{
+//
+//}
+void pickandplace()
+{
+	MotorZ(4000,0);
+	delay_ms(1500);
+	SetHomeZ();
+	//CDC_Transmit_FS(data, strlen((char *)data));
+}
 void backtobot()
 {
 	MotorY(10500,0);
 	delay_ms(1500);
 }
+void listen(char* message)
+{
+
+    while (strcmp((char*)buffer, message) != 0)
+    {
+//        if (HAL_GetTick() - startTime >= 20000)
+//        {
+//            NVIC_SystemReset(); // Reset the STM32
+//        }
+
+        delay_ms(4000);
+    }
+
+
+    //CDC_Transmit_FS(data, strlen((char*)data));
+}
+int ListenBot()
+{
+	char *messagebotpass = "Detected";
+	char *messagebotfail = "Undetected";
+	//int flag = 0;
+    while(1)
+    {
+    	if(strcmp((char*)buffer, messagebotpass) != 0)
+    	{
+    		return 1;
+    	}
+    	if(strcmp((char*)buffer, messagebotfail) != 0)
+    	{
+    	    return 0;
+    	 }
+    }
+
+}
+
+void flow()
+{
+	  listen("Start");
+	  delay_ms(5000);
+//	  	  SetHomePNP();
+//	  	  delay_ms(1000);
+	  CDC_Transmit_FS(data1, strlen((char*)data1));//top
+
+	 // CDC_Transmit_FS(data, strlen((char*)data));
+	 delay_ms(3000);
+	  listen("camtopok");
+
+//	 SetHome2();
+	  	delay_ms(1000);
+//	      checkpointcambot();
+//	      delay_ms(1500);
+//	      checkpointfeeder();
+//	      delay_ms(1500);
+	  delay_ms(5000);
+	  CDC_Transmit_FS(data3, strlen((char*)data3));
+	  delay_ms(3000);
+	  //if(ListenBot("Detected")==1)
+
+	  //listen("camtopok");
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -544,40 +520,109 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
   /* USER CODE END 2 */
-//MotorR(1600,1);
-  SetHomePNP();
-  delay_ms(1500);
-  SetHome2();
-  delay_ms(1500);
-  checkpointcambot();
-  delay_ms(1500);
-  checkpointfeeder();
-  delay_ms(1500);
-  MotorZ(4000,0);
-  SetHomeZ();
-  delay_ms(1500);
-  backtobot();
-  delay_ms(1000);
-  convert( 180,axis_r);
-  delay_ms(1500);
-  SetHome2();
-  delay_ms(1500);
-  convert( -11.7468,axis_X);
-  delay_ms(1500);
-  convert( -18.95,axis_Y);
-  delay_ms(1500);
-  MotorZ(4000,0);
-    delay_ms(500);
-//xu ly cam top
-// toi feeder
-// cambot
-// ve pcb
-// sethome
-//  delay_ms(500);
-//  MotorZ(4000,0);
-//  delay_ms(500);
-//  delay_ms(1500);
+  //flow();
+ //MotorR(1600,1);
+//  HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+//
+//     delay_ms(25000);
+//     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+// MotorZ(3400,0);
+//       delay_ms(40000);
+//       SetHomeZ();
+  //start
+//        SetHomePNP();
+//     SetHome2();
+//     delay_ms(1500);
+//     checkpointcambot();
+//     delay_ms(10500);
+//     checkpointfeeder();
+//     delay_ms(1500);
+//     convert( -25.4,axis_X);
+//     delay_ms(1500);
+//     convert(37.7,axis_Y);
+//     delay_ms(1500);
+//     MotorZ(3700,0);
+//     delay_ms(2000);
+//     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+//     delay_ms(20000);
+////     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+//     SetHomeZ();
+//     delay_ms(1500);
+//     convert( 25.4,axis_X);
+//     delay_ms(1500);
+//     convert(-37.7,axis_Y);
+//     delay_ms(1500);
+//     backtobot();
+//     delay_ms(20000);
 
+//     delay_ms(1500);
+     //backtobot();
+//     delay_ms(10500);
+//     while(1){
+//     convert(90,axis_r);
+//     delay_ms(10000);
+//     }
+     //delay_ms(5000);
+  	  SetHomeZ();
+     delay_ms(1500);
+     SetHome2();
+    // delay_ms(1500);
+     //checkpointcambot();
+     //delay_ms(19500);
+//     convert( -0.522201,axis_X);
+//     delay_ms(1500);
+//     convert( -6.75401,axis_Y);
+     delay_ms(1500);
+     MotorZ(3300,0);
+     delay_ms(19500);
+     SetHomeZ();
+     delay_ms(1500);
+     checkpointcambot();
+     delay_ms(10500);
+     checkpointfeeder();
+     delay_ms(1500);
+     convert( -25.4,axis_X);
+     delay_ms(1500);
+     convert(38,axis_Y);
+     delay_ms(1500);
+     MotorZ(3700,0);
+     delay_ms(2000);
+     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+     delay_ms(15000);
+     SetHomeZ();
+     delay_ms(15000);
+     convert( 25.4,axis_X);
+     delay_ms(1500);
+     convert(-38,axis_Y);
+     delay_ms(1500);
+     backtobot();
+     delay_ms(15000);
+     SetHome2();
+     convert(90,axis_r);
+     delay_ms(1500);
+     convert( -0.522201,axis_X);
+     delay_ms(1500);
+     convert( -3.7112,axis_Y);
+     delay_ms(1500);
+     MotorZ(3300,0);
+     delay_ms(3000);
+     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+     delay_ms(15000);
+     SetHomeZ();
+  //end
+   //listen();
+ //  unsigned long long num = 100;
+ //  char numStr[21]; // Buffer to hold string representation of num
+ //  CDC_Transmit_FS(data, strlen((char *)data));
+ ////xu ly cam top
+ // toi feeder
+ // cambot
+ // ve pcb
+ // sethome
+ //  delay_ms(500);
+ //  MotorZ(4000,0);
+ //  delay_ms(500);
+ //  delay_ms(1500);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -585,10 +630,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1);
-//	   delay_ms(1000);
-//	   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 0);
-//	   delay_ms(1000);
+	  // Transmit fixed message
+//	          CDC_Transmit_FS(data, strlen((char *)data));
+//	          HAL_Delay(1000);
+//	          // Convert num to string and transmit
+//	          ull_to_string(numStr, num);
+//	          CDC_Transmit_FS((uint8_t *)numStr, strlen(numStr));
+	        //  listen();
+	          //HAL_Delay(1000);
 
     /* USER CODE BEGIN 3 */
   }
@@ -757,7 +806,7 @@ static void MX_GPIO_Init(void)
                           |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_8, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12|GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -781,8 +830,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pins : PB12 PB13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
