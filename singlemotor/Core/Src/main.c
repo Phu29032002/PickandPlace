@@ -379,11 +379,11 @@ void SetHome2()
 	  //delay_ms(500);
 	  SetHomeX();
 	  delay_ms(500);
-	  MotorX(5200,1);
+	  MotorX(5300,1);
 	  delay_ms(500);
 	  SetHomeY();
 	  delay_ms(500);
-	  MotorY(4880,1);
+	  MotorY(5110,1);
 }
 
 void checkpointcambot()
@@ -393,8 +393,8 @@ void checkpointcambot()
 	  delay_ms(1500);
 //	  SetHomeY();
 //	  delay_ms(500);
-	  MotorY(200,1);
-	  delay_ms(1500);
+	  MotorY(20,0);
+//	  delay_ms(1500);
 }
 
 void checkpointfeeder()
@@ -482,7 +482,90 @@ void flow()
 
 	  //listen("camtopok");
 }
+void pickIC()
+{
+	delay_ms(1500);
+	convert( -25.4,axis_X);
+	delay_ms(1500);
+	convert(38.3,axis_Y);
+	delay_ms(1500);
+	MotorZ(3600,0);
+	delay_ms(1500);
+	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+	delay_ms(20500);
+	SetHomeZ();
+}
 
+void test1()
+{
+		SetHomeZ();
+	     delay_ms(1500);
+	     SetHome2();
+	     delay_ms(1500);
+	     MotorZ(3300,0);
+	     delay_ms(19500);
+	     SetHomeZ();
+	     delay_ms(1500);
+	     checkpointcambot();
+	     delay_ms(10500);
+	     checkpointfeeder();
+	     pickIC();
+	     convert( 25.4,axis_X);
+	     delay_ms(1500);
+	     convert(-38.3,axis_Y);
+	     delay_ms(1500);
+	     backtobot();
+	     delay_ms(15000);
+	     SetHome2();
+	     convert(90,axis_r);
+	     delay_ms(1500);
+	     convert( -0.5222,axis_X);
+	     delay_ms(1500);
+	     convert( -3.7112,axis_Y);
+	     delay_ms(1500);
+	     MotorZ(3300,0);
+	     delay_ms(3000);
+	     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+	     delay_ms(15000);
+	     SetHomeZ();
+}
+
+void test2()
+{
+			SetHomeZ();
+		     delay_ms(1500);
+		     SetHome2();
+		     delay_ms(1500);
+		     delay_ms(1500);
+		     convert( 11.1878,axis_X);
+		     delay_ms(1500);
+		     convert(9.2268,axis_Y);
+		     delay_ms(1500);
+		     MotorZ(3300,0);
+		    // checkpointcambot();
+		     //delay_ms(19500);
+		//     convert( -0.522201,axis_X);
+		//     delay_ms(1500);
+		//     convert( -6.75401,axis_Y);
+		   //  delay_ms(1500);
+
+//		     delay_ms(1500);
+//		     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+//		     delay_ms(20500);
+//		     SetHomeZ();
+//		     convert(-8.7,axis_Y);
+//		     MotorZ(3600,0);
+//		     delay_ms(20500);
+//		     SetHomeZ();
+//		     convert(-8.7,axis_Y);
+//		     MotorZ(3600,0);
+//		     delay_ms(20500);
+//		     SetHomeZ();
+//		     convert(-8.7,axis_Y);
+//		     MotorZ(3600,0);
+//		     delay_ms(20500);
+//		     SetHomeZ();
+}
 /* USER CODE END 0 */
 
 /**
@@ -530,6 +613,7 @@ int main(void)
 //       delay_ms(40000);
 //       SetHomeZ();
   //start
+  test1();
 //        SetHomePNP();
 //     SetHome2();
 //     delay_ms(1500);
@@ -563,52 +647,9 @@ int main(void)
 //     delay_ms(10000);
 //     }
      //delay_ms(5000);
-  	  SetHomeZ();
-     delay_ms(1500);
-     SetHome2();
-    // delay_ms(1500);
-     //checkpointcambot();
-     //delay_ms(19500);
-//     convert( -0.522201,axis_X);
-//     delay_ms(1500);
-//     convert( -6.75401,axis_Y);
-     delay_ms(1500);
-     MotorZ(3300,0);
-     delay_ms(19500);
-     SetHomeZ();
-     delay_ms(1500);
-     checkpointcambot();
-     delay_ms(10500);
-     checkpointfeeder();
-     delay_ms(1500);
-     convert( -25.4,axis_X);
-     delay_ms(1500);
-     convert(38,axis_Y);
-     delay_ms(1500);
-     MotorZ(3700,0);
-     delay_ms(2000);
-     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
-     delay_ms(15000);
-     SetHomeZ();
-     delay_ms(15000);
-     convert( 25.4,axis_X);
-     delay_ms(1500);
-     convert(-38,axis_Y);
-     delay_ms(1500);
-     backtobot();
-     delay_ms(15000);
-     SetHome2();
-     convert(90,axis_r);
-     delay_ms(1500);
-     convert( -0.522201,axis_X);
-     delay_ms(1500);
-     convert( -3.7112,axis_Y);
-     delay_ms(1500);
-     MotorZ(3300,0);
-     delay_ms(3000);
-     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
-     delay_ms(15000);
-     SetHomeZ();
+  //start
+ // SetHomeZ();
+
   //end
    //listen();
  //  unsigned long long num = 100;
