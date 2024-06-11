@@ -926,70 +926,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
   /* USER CODE END 2 */
-//testserial();
- // Component();
-  SetHome2();
-  delay_ms(2000);
-  checkpointcambot();
-  delay_ms(2000);
-  checkpointfeeder();
-  delay_ms(1500);
-  //Stage3();
- // delay_ms(1000);
- // Stage4();
-  //Pick IC
-//  delay_ms(3500);
-//  convert(-27.8,axis_X);
-//  delay_ms(3500);
-//  	convert((45.2),axis_Y);
-//  	delay_ms(3500);
-//  	MotorZ(7500,0);
-//  	delay_ms(1500);
-//  	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
-//  	delay_ms(40500);
-//  	SetHomeZ();
-//  	delay_ms(3500);
-//  	convert(27.8,axis_X);
-//  	delay_ms(3500);
-//  	convert(((-1)*45.2),axis_Y);
-//  	delay_ms(3500);
-  //pickcaAO
-//  delay_ms(3500);
-//    convert(-8.5,axis_X);
-//    delay_ms(3500);
-//    convert((44.4),axis_Y);
-//    	delay_ms(3500);
-//    	MotorZ(7500,0);
-//    	delay_ms(1500);
-//    	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
-//    	delay_ms(40500);
-//    	SetHomeZ();
-//    	delay_ms(3500);
-//    	convert(8.5,axis_X);
-//    	delay_ms(3500);
-//    	convert(((-1)*44.4),axis_Y);
-//    	delay_ms(3500);
-    	  delay_ms(3500);
-    	  convert(3.5,axis_X);
-    	    delay_ms(3500);
-    	    convert((44.4),axis_Y);
-    	    	delay_ms(3500);
-    	    	MotorZ(7500,0);
-    	    	delay_ms(1500);
-    	    	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
-    	    	delay_ms(40500);
-    	    	SetHomeZ();
-    	    	delay_ms(3500);
-    	    	convert(-3.5,axis_X);
-    	    	delay_ms(3500);
-    	    	convert(((-1)*44.4),axis_Y);
-//  delay_ms(2500);
-//  Stage3();
-//  delay_ms(2500);
-//  SendCheckY();
-//  delay_ms(2500);
-//
-//  testPlace();
+  Stage1();
+  Stage2();
+  Stage3();
+  Stage4();
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
