@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-
+#include "stdio.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
@@ -58,11 +58,13 @@ static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 char *data = "done\n";
 char *data1 = "top\n";
-char *data2 = "Received\n";
-char *data3 = "bottom\n";
-char *detect = "Detected";
-char *undetect = "Undetected";
-uint8_t buffer[64];
+char *data2 = "LoadData";
+char *data3 = "Completed\n";
+char *bot = "bottom";
+char *detect = "cambottomdetected";
+char *undetect = "cambottomundetected";
+char *feeder = "feederok";
+uint8_t buffer[128];
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -129,10 +131,7 @@ uint16_t max_pos_z = 400;
 uint16_t max_pul_z = 8000;
 uint16_t max_pos_r = 360;
 uint16_t max_pul_r = 6400;
-uint16_t cx,cy,cz,cr;
-//char *data = "Hello World from USB CDC\n";
-
-
+float moveX=0,moveY=0;
 void delay_1ms(void)
 {
  __HAL_TIM_SetCounter(&htim1, 0);
@@ -211,7 +210,6 @@ void SetHomeX()
 		HAL_GPIO_WritePin(MOTORx_STEP_PORT, MOTORx_STEP_PIN, GPIO_PIN_RESET);
 		delay_ms(AccMax);
 		}
-		cx = 0;
 		//MotorX(600,1);
 }
 void MotorZ (unsigned long long steps, uint8_t direction)
@@ -264,33 +262,7 @@ void SetHomeZ()
 
 
 
-void ull_to_string(char* str, unsigned long long a) {
-    char convert[21]; // Buffer to hold the number plus a null-terminator
-    int i = 0;
 
-    if (a == 0) {
-        convert[i++] = '0';
-    }
-
-    // Convert number to string in reverse order
-    while (a != 0) {
-        unsigned long long last_digit = a % 10;
-        convert[i++] = '0' + last_digit;
-        a /= 10;
-    }
-
-    convert[i] = '\0'; // Null-terminate the string
-
-    // Reverse the string
-    int j;
-    for (j = 0; j < i / 2; j++) {
-        char tmp = convert[j];
-        convert[j] = convert[i - 1 - j];
-        convert[i - 1 - j] = tmp;
-    }
-
-    strcpy(str, convert); // Copy the reversed string to the output
-}
 uint16_t convert(float pos, int axis)
 {
     float max_pos = -1;
@@ -347,9 +319,15 @@ uint16_t convert(float pos, int axis)
 		}
 	}
 }
+void reversepcb()
+{
+	delay_ms(500);
+	MotorX(23400,0);
+	delay_ms(1500);
+}
 
-void clearBuffer(char *buffer, size_t size) {
-    memset(buffer, '\0', size);
+void clearBuffer() {
+    memset(buffer, 0, sizeof(buffer));
 }
 
 void Feeder()
@@ -371,68 +349,44 @@ void SetHomePNP()
 	  MotorY(8000,1);
 
 }
-
 void SetHome2()
 {
-	  //SetHomeZ();
-	  //delay_ms(500);
+	  SetHomeZ();
+	  delay_ms(1000);
 	  SetHomeX();
-	  delay_ms(500);
+	  delay_ms(1000);
 	 // MotorX(5400,1);//-100
 	  convert(54.2,axis_X); //R3 54
-	  delay_ms(500);
+	  delay_ms(1000);
 	  SetHomeY();
-
-	  delay_ms(500);
+	  delay_ms(1000);
 	  //MotorY(4300,1);
 	  convert(43.9,axis_Y);//43.1
-
 	  delay_ms(1500);
-	//  MotorZ(3300,0);
 }
-void ReversePCB()
-{
-	SetHomeZ();
-	convert(-54,axis_X);
-	delay_ms(1000);
-	convert(-43.1,axis_Y);
-	delay_ms(1000);
-}
+
 void checkpointcambot()
 {
 	  delay_ms(500);
 	  MotorX(23400,1);
 	  delay_ms(1500);
-//	  SetHomeY();
-//	  delay_ms(500);
-	  MotorY(20,0);
-//	  delay_ms(1500);
+	 // MotorY(20,0);
+
 }
 
 void checkpointfeeder()
 {
 	  delay_ms(500);
 	  MotorY(21000,1);
-	  //delay_ms(500);
-//	  SetHomeY();
-//	  delay_ms(500);
-//	  MotorY(4000,1);
 }
-//void pick()
-//{
-//
-//}
-void pickandplace()
+void Checkbottom()
 {
-	MotorZ(3000,0);
-	delay_ms(1500);
-	SetHomeZ();
-	//CDC_Transmit_FS(data, strlen((char *)data));
-}
-void backtobot()
-{
+
 	MotorY(21000,0);
-	delay_ms(1500);
+	delay_ms(2500);
+	CDC_Transmit_FS(bot, strlen((char*)bot));
+	ListenBot("cambottomdetected");
+
 }
 void listen(char* message)
 {
@@ -450,21 +404,7 @@ void listen(char* message)
 void ListenBot(char* message)
 {
 	int startTime = HAL_GetTick();
-//	char *messagebotpass = "cambottomok";
-//	char *messagebotfail = "cambottomundetected";
-//	//int flag = 0;
-//    while(1)
-//    {
-//    	if(strcmp((char*)buffer, messagebotpass) == 0)
-//    	{
-//    		return 1;
-//    	}
-//    	if(strcmp((char*)buffer, messagebotfail) == 0)
-//    	{
-//    	    return 0;
-//    	 }
-//    }
-	clearBuffer(buffer,64);
+	clearBuffer();
 	  while (strcmp((char*)buffer, message) != 0)
 	    {
 		          if (HAL_GetTick() - startTime >= 10000)
@@ -475,20 +415,52 @@ void ListenBot(char* message)
 
 	        delay_ms(4000);
 	    }
-	  	  delay_ms(5000);
-	  	     SetHome2();
-	  	     convert(90,axis_r);
-	  	     delay_ms(1500);
-	  	     convert( -0.5222,axis_X);
-	  	     delay_ms(1500);
-	  	     convert( -2.6112,axis_Y);
-	  	     delay_ms(1500);
-	  	     MotorZ(7400,0);
-	  	     delay_ms(3000);
-	  	     HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
-	  	     delay_ms(15000);
-	  	     SetHomeZ();
-	  	   clearBuffer(buffer,64);
+	  return;
+//	  	  delay_ms(5000);
+//	  	  SetHome2();
+//	  	  convert(90,axis_r);
+//	  	  delay_ms(1500);
+//	  	  convert( -0.5222,axis_X);
+//	  	  delay_ms(1500);
+//	  	  convert( -2.6112,axis_Y);
+//	  	  delay_ms(1500);
+//	  	  MotorZ(7400,0);
+//	  	  delay_ms(3000);
+//	  	  HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+//	  	  delay_ms(15000);
+//	  	  SetHomeZ();
+//	  	  clearBuffer();
+}
+char numStr[21];
+void ull_to_string(char* str, unsigned long long a) {
+    char convert[21]; // Buffer to hold the number plus a null-terminator
+    int i = 0;
+
+    if (a == 0) {
+        convert[i++] = '0';
+    }
+
+    // Convert number to string in reverse order
+    while (a != 0) {
+        unsigned long long last_digit = a % 10;
+        convert[i++] = '0' + last_digit;
+        a /= 10;
+    }
+
+    convert[i] = '\0'; // Null-terminate the string
+
+    // Reverse the string
+    int j;
+    for (j = 0; j < i / 2; j++) {
+        char tmp = convert[j];
+        convert[j] = convert[i - 1 - j];
+        convert[i - 1 - j] = tmp;
+    }
+
+    strcpy(str, convert); // Copy the reversed string to the output
+}
+void float_to_string(char* str, float value) {
+    sprintf(str,"%.3f", value); // Convert float to string with 6 decimal places
 }
 
 struct PartData {
@@ -500,8 +472,9 @@ struct PartData {
 //markcomp
 #define MAX_PARTS 100
 struct PartData parts[MAX_PARTS];
-int part_count = 0;
 
+int part_count = 0;
+uint8_t newdata[64];
 // Function to parse incoming data string
 struct PartData parseDataString(char *data) {
     char *token = strtok(data, ",");
@@ -527,111 +500,336 @@ struct PartData parseDataString(char *data) {
     return partData;
 }
 
+
+void SendCheckY()
+{
+	char numStr[32];
+
+	    for (int i = 0; i < part_count; i++) {
+	        float_to_string(numStr, parts[i].y);
+	        delay_ms(500);
+	        CDC_Transmit_FS((uint8_t *)numStr, strlen(numStr));
+	        delay_ms(2000);
+	    }
+}
+
+void SendCheck() {
+    for (int i = 0; i < part_count; i++) {
+        char message[2]; // Buffer to hold the part_id and a null terminator
+        message[0] = parts[i].part_id; // Assign the part ID to the first character
+        message[1] = '\0'; // Null-terminate the string
+
+        CDC_Transmit_FS((uint8_t*)message, 1); // Send only the part_id character
+        delay_ms(4000); // Adjust the delay as needed
+    }
+}
 void Component()
 {
 	CDC_Transmit_FS(data2, strlen((char*)data2));
-	clearBuffer(buffer, 64);
+	clearBuffer();
 	char *end = "end";
-
 	 while (strcmp((char*)buffer, end) != 0)
 	  {
-
-	 CDC_Transmit_FS(buffer, strlen((char*)buffer));
-//		 	//buffer[strcspn(buffer, "\n")]= '\0';
-//		 	struct PartData partData = parseDataString(buffer);
-//		 	parts[part_count++] = partData;
-//
-//		 //	 strncat(componentid, &partData.part_id, 1); // Append only the first character of the Part ID
-//
-		 	 clearBuffer(buffer, 64);
-		 	 delay_ms(4000);
+		 CDC_Transmit_FS(buffer, strlen((char*)buffer));
+		 struct PartData partData = parseDataString(buffer);
+		 // Only add parts with non-zero x and y values
+		         if (fabs(partData.x) > 0.0001 && fabs(partData.y) > 0.0001)
+		         {
+		             parts[part_count++] = partData;
+		         }
+		 clearBuffer();
+		 	delay_ms(6000);
 	  }
-
 	 CDC_Transmit_FS(data3, strlen((char*)data3));
+	 delay_ms(2000);
+}
+void PickandPlace()
+{
+
 }
 
-
-void flow()
+void testPlace()
 {
-	  listen("Start");
-	  delay_ms(5000);
-//	  	  SetHomePNP();
-//	  	  delay_ms(1000);
-	  CDC_Transmit_FS(data1, strlen((char*)data1));//top
+    for(int i = 0; i < part_count; i++)
+    {
+        // Check and skip if parts[i].x is exactly zero
+        if (fabs(parts[i].x) > 0.0001)
+        {
+            convert(parts[i].x, axis_X);
+            delay_ms(1500);
+        }
 
-	 // CDC_Transmit_FS(data, strlen((char*)data));
-	 delay_ms(3000);
-	  listen("camtopok");
+        // Check and skip if parts[i].y is exactly zero
+        if (fabs(parts[i].y) > 0.0001)
+        {
+            convert(parts[i].y, axis_Y);
+            delay_ms(1500);
+        }
 
-//	 SetHome2();
-	  	delay_ms(1000);
-//	      checkpointcambot();
-//	      delay_ms(1500);
-//	      checkpointfeeder();
-//	      delay_ms(1500);
-	  delay_ms(5000);
-	  CDC_Transmit_FS(data3, strlen((char*)data3));
-	  delay_ms(3000);
-	  //if(ListenBot("Detected")==1)
+        MotorZ(7000, 0);
+        delay_ms(1500);
+        SetHomeZ();
+        delay_ms(1500);
 
-	  //listen("camtopok");
+        // Check and skip if parts[i].x is exactly zero for reverse movement
+        if (fabs(parts[i].x) > 0.0001)
+        {
+            convert(parts[i].x * (-1), axis_X);
+            delay_ms(1500);
+        }
+
+        // Check and skip if parts[i].y is exactly zero for reverse movement
+        if (fabs(parts[i].y) > 0.0001)
+        {
+            convert(parts[i].y * (-1), axis_Y);
+            delay_ms(1500);
+        }
+    }
 }
-void pickIC()
+void Place()
+{
+    // Check and skip if parts[i].x is exactly zero
+    if (fabs(parts[i].x) > 0.0001)
+    {
+        convert(parts[i].x, axis_X);
+        delay_ms(1500);
+    }
+
+    // Check and skip if parts[i].y is exactly zero
+    if (fabs(parts[i].y) > 0.0001)
+    {
+        convert(parts[i].y, axis_Y);
+        delay_ms(1500);
+    }
+
+    MotorZ(7000, 0);
+    delay_ms(1500);
+    SetHomeZ();
+    delay_ms(1500);
+
+    // Check and skip if parts[i].x is exactly zero for reverse movement
+    if (fabs(parts[i].x) > 0.0001)
+    {
+        convert(parts[i].x * (-1), axis_X);
+        delay_ms(1500);
+    }
+
+    // Check and skip if parts[i].y is exactly zero for reverse movement
+    if (fabs(parts[i].y) > 0.0001)
+    {
+        convert(parts[i].y * (-1), axis_Y);
+        delay_ms(1500);
+    }
+}
+void pickIC(int a)
 {
 	delay_ms(3500);
-	convert( -25.4,axis_X);
+	convert( -27.8,axis_X);
 	delay_ms(3500);
-	convert(46,axis_Y);
+	a = a*(-8);
+	convert((45.2-a),axis_Y);
+	//convert((45.2),axis_Y);
+	delay_ms(3500);
+	MotorZ(7200,0);
+	delay_ms(1500);
+	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+	delay_ms(40500);
+	SetHomeZ();
+	delay_ms(3500);
+	convert( 27.8,axis_X);
+	delay_ms(3500);
+	convert(((-1)*(45.2-a)),axis_Y);
+	delay_ms(3500);
+}
+void pickCAP(int a)
+{
+	delay_ms(3500);
+	convert(-8.5,axis_X);
+	delay_ms(3500);
+	a = a*(-4);
+	convert((44.4-a),axis_Y);
 	delay_ms(3500);
 	MotorZ(7500,0);
 	delay_ms(1500);
 	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
 	delay_ms(40500);
 	SetHomeZ();
+	delay_ms(3500);
+	convert( 8.5,axis_X);
+	delay_ms(3500);
+	convert(((-1)*(44.4-a)),axis_Y);
+	delay_ms(3500);
 }
-void pickCAP()
+void pickLed(int a)
 {
 	delay_ms(3500);
-	convert( -7,axis_X); //-7
+	convert(3.5,axis_X);
 	delay_ms(3500);
-	convert(44,axis_Y);//48 -4
+	a = a*(-4);
+	convert((44.4-a),axis_Y);
 	delay_ms(3500);
-	MotorZ(7400,0);
+	MotorZ(7500,0);
 	delay_ms(1500);
 	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
 	delay_ms(40500);
 	SetHomeZ();
+	delay_ms(3500);
+	convert(-3.5,axis_X);
+	delay_ms(3500);
+	convert(((-1)*(44.4-a)),axis_Y);
+	delay_ms(3500);
 }
+void pickRes(int a)
+{
+	delay_ms(3500);
+	convert(15.5,axis_X);
+	delay_ms(3500);
+	a = a*(-4);
+	convert((44.4-a),axis_Y);
+	delay_ms(3500);
+	MotorZ(7500,0);
+	delay_ms(1500);
+	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+	delay_ms(40500);
+	SetHomeZ();
+	delay_ms(3500);
+	convert(-15.5,axis_X);
+	delay_ms(3500);
+	convert(((-1)*(44.4-a)),axis_Y);
+	delay_ms(3500);
 
+}
 void testserial()
 {
 	listen("bottom");
-
+}
+void Stage1()
+{
+	listen("start");
+	SetHomePNP();
+	listen("camtopok");
+}
+void Stage2()
+{
+	SetHome2();
+	checkpointcambot();
+	checkpointfeeder();
+}
+void Stage3()
+{
+	listen("LoadData");
+	Component();
 }
 
+void Stage4()
+{
+	liseten("feederok");
+	delay_ms(1500);
+	//automation
+	int part_num=0;
+	int cap=0,ic=0,res=0,led=0;
+	for(int i =0;i<part_count;i++)
+	{
+
+		part_num=i;
+		moveX = parts[i].x;
+		moveY = parts[i].y;
+		if(parts[i].part_id=='U')
+		{
+			PickIC(ic);
+			ic++;
+		}
+		else if(parts[i].part_id=='C')
+		{
+			PickCap(cap);
+			cap++;
+		}
+		else if(parts[i].part_id=='R')
+		{
+			PickCap(res);
+			res++;
+
+		}
+		else if(parts[i].part_id=='D')
+		{
+			PickCap(led);
+			led++;
+		}
+		Checkbottom();
+		reversepcb();
+	    if (fabs(parts[i].x) > 0.0001)
+	    {
+	        convert(parts[i].x, axis_X);
+	        delay_ms(1500);
+	    }
+
+	    // Check and skip if parts[i].y is exactly zero
+	    if (fabs(parts[i].y) > 0.0001)
+	    {
+	        convert(parts[i].y, axis_Y);
+	        delay_ms(1500);
+	    }
+
+	    MotorZ(7000, 0);
+	    delay_ms(1500);
+	    SetHomeZ();
+	    delay_ms(1500);
+
+	    // Check and skip if parts[i].x is exactly zero for reverse movement
+	    if (fabs(parts[i].x) > 0.0001)
+	    {
+	        convert(parts[i].x * (-1), axis_X);
+	        delay_ms(1500);
+	    }
+
+	    // Check and skip if parts[i].y is exactly zero for reverse movement
+	    if (fabs(parts[i].y) > 0.0001)
+	    {
+	        convert(parts[i].y * (-1), axis_Y);
+	        delay_ms(1500);
+	    }
+		checkpointcambot();
+		checkpointfeeder();
+	}
+}
+void testPick()
+{
+	int part_num=0;
+	int cap=0,ic=0,res=0,led=0;
+	for(int i =0;i<part_count;i++)
+	{
+		part_num=i;
+		moveX = parts[i].x;
+		moveY = parts[i].y;
+		if(parts[i].part_id=='U')
+		{
+			PickIC(ic);
+			ic++;
+
+		}
+		else if(parts[i].part_id=='C')
+		{
+			PickCap(ic);
+			cap++;
+		}
+		else if(parts[i].part_id=='R')
+		{
+			PickCap(ic);
+			cap++;
+		}
+		else if(parts[i].part_id=='R')
+		{
+			PickCap(ic);
+			cap++;
+		}
+
+	}
+}
 void test1()
 {
-		SetHomeZ();
-	     delay_ms(1500);
-	     SetHome2();
-	     delay_ms(1500);
-	     //MotorZ(3300,0);
-	     //delay_ms(19500);
-	     //SetHomeZ();
-	     delay_ms(1500);
-	     checkpointcambot();
-	     delay_ms(10500);
-	     checkpointfeeder();
-	     pickIC();
-	     delay_ms(40500);
-	     convert( 25.4,axis_X);
-	     delay_ms(1500);
-	     convert(-46,axis_Y);
-	     delay_ms(1500);
-	     backtobot();
-	     delay_ms(40000);
-	     CDC_Transmit_FS(data3, strlen((char*)data3));
-	     ListenBot("cambottomok\n");
+	Stage1();
+	Stage2();
+
 
 }
 
@@ -728,8 +926,70 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
   /* USER CODE END 2 */
-testserial();
-  Component();
+//testserial();
+ // Component();
+  SetHome2();
+  delay_ms(2000);
+  checkpointcambot();
+  delay_ms(2000);
+  checkpointfeeder();
+  delay_ms(1500);
+  //Stage3();
+ // delay_ms(1000);
+ // Stage4();
+  //Pick IC
+//  delay_ms(3500);
+//  convert(-27.8,axis_X);
+//  delay_ms(3500);
+//  	convert((45.2),axis_Y);
+//  	delay_ms(3500);
+//  	MotorZ(7500,0);
+//  	delay_ms(1500);
+//  	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+//  	delay_ms(40500);
+//  	SetHomeZ();
+//  	delay_ms(3500);
+//  	convert(27.8,axis_X);
+//  	delay_ms(3500);
+//  	convert(((-1)*45.2),axis_Y);
+//  	delay_ms(3500);
+  //pickcaAO
+//  delay_ms(3500);
+//    convert(-8.5,axis_X);
+//    delay_ms(3500);
+//    convert((44.4),axis_Y);
+//    	delay_ms(3500);
+//    	MotorZ(7500,0);
+//    	delay_ms(1500);
+//    	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+//    	delay_ms(40500);
+//    	SetHomeZ();
+//    	delay_ms(3500);
+//    	convert(8.5,axis_X);
+//    	delay_ms(3500);
+//    	convert(((-1)*44.4),axis_Y);
+//    	delay_ms(3500);
+    	  delay_ms(3500);
+    	  convert(3.5,axis_X);
+    	    delay_ms(3500);
+    	    convert((44.4),axis_Y);
+    	    	delay_ms(3500);
+    	    	MotorZ(7500,0);
+    	    	delay_ms(1500);
+    	    	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
+    	    	delay_ms(40500);
+    	    	SetHomeZ();
+    	    	delay_ms(3500);
+    	    	convert(-3.5,axis_X);
+    	    	delay_ms(3500);
+    	    	convert(((-1)*44.4),axis_Y);
+//  delay_ms(2500);
+//  Stage3();
+//  delay_ms(2500);
+//  SendCheckY();
+//  delay_ms(2500);
+//
+//  testPlace();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
