@@ -94,10 +94,11 @@ uint8_t buffer[128];
 //Markhead
 uint16_t home = 0;
 uint16_t test;
-float Xtest=0;
-float Ytest =0;
+volatile int cx=0;
+volatile int cy =0;
 float Rtest=0;
 char *bufftest;
+int standby=0;
 /* Define motor directions */
 #define MOTORy_FORWARD GPIO_PIN_SET
 #define MOTORy_BACKWARD GPIO_PIN_RESET
@@ -323,7 +324,7 @@ uint16_t convert(float pos, int axis)
 void reversepcb()
 {
 	delay_ms(500);
-	MotorX(16840,0);
+	MotorX(16800,0);
 	delay_ms(1500);
 }
 
@@ -340,11 +341,11 @@ void centerPCB()
 	HAL_GPIO_WritePin(MOTORx_DIR_PORT, MOTORx_DIR_PIN, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(MOTORy_DIR_PORT, MOTORy_DIR_PIN, GPIO_PIN_SET);
 
-
-	for(int i = 0;i<17570;i++)//17610
+//34310
+	for(int i = 0;i<17860;i++)//17860
 	{
 		//pulseY--;
-		if(i<=9350)
+		if(i<=9300)//9600
 		{
 			HAL_GPIO_WritePin(MOTORx_STEP_PORT, MOTORx_STEP_PIN, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MOTORy_STEP_PORT, MOTORy_STEP_PIN, GPIO_PIN_SET);
@@ -370,10 +371,10 @@ void centerCam()
 	HAL_GPIO_WritePin(MOTORx_DIR_PORT, MOTORx_DIR_PIN, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(MOTORy_DIR_PORT, MOTORy_DIR_PIN, GPIO_PIN_SET);
 
-	for(int i = 0;i<6860;i++)
+	for(int i = 0;i<9460;i++)
 	{
 		//pulseY--;
-		if(i<3535)
+		if(i<4980)
 		{
 			HAL_GPIO_WritePin(MOTORx_STEP_PORT, MOTORx_STEP_PIN, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(MOTORy_STEP_PORT, MOTORy_STEP_PIN, GPIO_PIN_SET);
@@ -436,7 +437,6 @@ void SetHomeV2(int a)
 			else if(a==1)
 			{
 				//delay_ms(10500);
-
 				centerCam();
 				//MotorZ(5000,0);
 			}
@@ -548,9 +548,9 @@ void centerFeeder()
 
 void checkpointcambot()
 {
+	  //delay_ms(500);
+	  MotorX(16800,1);
 	  delay_ms(500);
-	  MotorX(16840,1);
-	  delay_ms(7000);
 	 // MotorY(20,0);
 
 }
@@ -558,12 +558,12 @@ void checkpointcambot()
 void checkpointfeeder()
 {
 	  delay_ms(500);
-	  MotorY(21000,1);
+	  MotorY(21100,1);//20950
 }
 void Checkbottom()
 {
 
-	MotorY(21000,0);
+	MotorY(21100,0);
 	delay_ms(2500);
 	CDC_Transmit_FS(bot, strlen((char*)bot));
 	ListenBot("cambottomok");
@@ -571,21 +571,21 @@ void Checkbottom()
 }
 void testbottom()
 {
-	MotorY(21000,0);
-	delay_ms(2500);
+	MotorY(21100,0);
+	delay_ms(15000);
 }
 void CamTopFeeder()
 {
-	MotorX(14880,0);
+	MotorX(12580,0);
 	delay_ms(1500);
-	MotorY(4700,1);
+	MotorY(5700,1);
 	delay_ms(1500);
 }
 void reverseFeeder()
 {
-		MotorX(14880,1);
+		MotorX(12580,1);
 		delay_ms(1500);
-		MotorY(4700,0);
+		MotorY(5700,0);
 		delay_ms(1500);
 }
 void listen(char* message)
@@ -605,9 +605,16 @@ void ListenBot(char* message)
 	clearBuffer();
 	  while (strcmp((char*)buffer, message) != 0)
 	    {
-		          if (HAL_GetTick() - startTime >= 10000)
+		          if (HAL_GetTick() - startTime >= 20000)
 		          {
-		        	  checkpointfeeder();
+		        	 // checkpointfeeder();
+		        	 // SetHomeV2(0);
+		        	  clearBuffer();
+		        	  HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_OFF);
+		        	  listen("start");
+		        	  run();
+		        	  //run();
+		        	  //  NVIC_SystemReset();
 		              return;//NVIC_SystemReset(); // Reset the STM32
 		          }
 
@@ -732,35 +739,37 @@ void Component()
 void Joystick()
 {
 	char *calib = "calib";
+	//clearBuffer();
 	//transmit somthign trigger python
 	CDC_Transmit_FS(calib, strlen((char*)calib));
 		clearBuffer();
-		char *end = "end";
+		char *end = "start";
 		 while (strcmp((char*)buffer, end) != 0)
 		  {
 			 if (strcmp(buffer, "forward") == 0)
 			 {
-			     MotorY(50, 0);
+			     MotorY(20, 0);
+			     cy = cy + 20;
 			     clearBuffer();  // Clear buffer after processing command
 			     delay_ms(500);
 
 			 }
 			 else if (strcmp(buffer, "backward") == 0)
 			 {
-			     MotorY(50, 1);
+			     MotorY(20, 1);
 			     clearBuffer();  // Clear buffer after processing command
 			     delay_ms(500);
 
 			 }
 			 else if (strcmp(buffer, "left") == 0)
 			 {
-			     MotorX(50, 0);
+			     MotorX(20, 0);
 			     clearBuffer();  // Clear buffer after processing command
 			     delay_ms(500);
 			 }
 			 else if (strcmp(buffer, "right") == 0)
 			 {
-			     MotorX(50, 1);
+			     MotorX(20, 1);
 			     clearBuffer();  // Clear buffer after processing command
 			     delay_ms(500);
 
@@ -792,10 +801,10 @@ void Joystick()
 void pickIC(int a)
 {
 	delay_ms(3500);
-	convert(-21.7,axis_X);
+	convert(-20.5,axis_X);
 	delay_ms(3500);
 	a = a*(8);
-	convert((37.6-a),axis_Y);
+	convert((37.7-a),axis_Y);
 	//convert((45.2),axis_Y);
 	delay_ms(3500);
 	MotorZ(7380,0);
@@ -804,18 +813,18 @@ void pickIC(int a)
 	delay_ms(20500);
 	SetHomeZ();
 	delay_ms(3500);
-	convert(21.7,axis_X);
+	convert(20.5,axis_X);
 	delay_ms(3500);
-	convert(((-1)*(37.6-a)),axis_Y);
+	convert(((-1)*(37.7-a)),axis_Y);
 	delay_ms(3500);
 }
 void pickCAP(int a)
 {
 	delay_ms(3500);
-	convert(-5.1,axis_X);
+	convert(-4.8,axis_X);
 	delay_ms(3500);
-	a = a*(4.1);
-	convert((36.7-a),axis_Y);
+	a = a*(4);
+	convert((36.2-a),axis_Y);
 	delay_ms(3500);
 	MotorZ(7200,0);
 	delay_ms(1500);
@@ -823,37 +832,37 @@ void pickCAP(int a)
 	delay_ms(20500);
 	SetHomeZ();
 	delay_ms(3500);
-	convert(5.1,axis_X);
+	convert(4.8,axis_X);
 	delay_ms(3500);
-	convert(((-1)*(36.7-a)),axis_Y);
+	convert(((-1)*(36.2-a)),axis_Y);
 	delay_ms(3500);
 }
 void pickLed(int a)
 {
 	delay_ms(3500);
-	convert(10.5,axis_X);
+	convert(10.4,axis_X);
 	delay_ms(3500);
-	a = a*(4.3);
-	convert((36.5-a),axis_Y);
+	a = a*(4.2);
+	convert((36-a),axis_Y);
 	delay_ms(3500);
-	MotorZ(7190,0);
+	MotorZ(7260,0);
 	delay_ms(1500);
 	HAL_GPIO_WritePin(PUMPER_PORT, PUMPER_PIN, PUMP_ON);
 	delay_ms(20500);
 	SetHomeZ();
 	delay_ms(3500);
-	convert(-10.5,axis_X);
+	convert(-10.4,axis_X);
 	delay_ms(3500);
-	convert(((-1)*(36.5-a)),axis_Y);
+	convert(((-1)*(36-a)),axis_Y);
 	delay_ms(3500);
 }
 void pickRes(int a)
 {
 	delay_ms(3500);
-	convert(22.5,axis_X);
+	convert(22.6,axis_X);
 	delay_ms(3500);
-	a = a*(4.3);
-	convert((36.5-a),axis_Y);
+	a = a*(4.1);
+	convert((35.6-a),axis_Y);
 	delay_ms(3500);
 	MotorZ(7180,0);
 	delay_ms(1500);
@@ -861,9 +870,9 @@ void pickRes(int a)
 	delay_ms(20500);
 	SetHomeZ();
 	delay_ms(3500);
-	convert(-22.55,axis_X);
+	convert(-22.6,axis_X);
 	delay_ms(3500);
-	convert(((-1)*(36.5-a)),axis_Y);
+	convert(((-1)*(35.6-a)),axis_Y);
 	delay_ms(3500);
 }
 void testserial()
@@ -873,9 +882,8 @@ void testserial()
 void Stage1()
 {
 	char *trigcamtop = "capture";
-
 	listen("start");
-	SetHomveV2(1);
+	SetHomeV2(1);
 	CDC_Transmit_FS(trigcamtop, strlen((char*)trigcamtop));
 	delay_ms(500);
 	listen("camtopok");
@@ -883,11 +891,28 @@ void Stage1()
 void Stage2()
 {
 	//SetHome2();
+//	SetHomeV2(0);
+//	//Joystick();
+//	 //SetHomeZ();
+//	checkpointcambot();
+//	checkpointfeeder();
+//	CamTopFeeder();
+
 	SetHomeV2(0);
-	checkpointcambot();
+	MotorX(16750,1);
+	  //Joystick();
+	autoCalib();
+	MotorX(16800,0);
+	MotorZ(6950, 0);
+	delay_ms(40000);
+	SetHomeZ();
+	delay_ms(500);
+	MotorX(16840,1);
+	delay_ms(3000);
+	autoCalib();
 	checkpointfeeder();
-	//CamTopFeeder();
-	//reverseFeeder();
+	CamTopFeeder();
+
 }
 void Stage3()
 {
@@ -900,6 +925,7 @@ void Stage3()
 
 	//listen("LoadData");
 	Component();
+	reverseFeeder();
 }
 
 void Stage4()
@@ -908,7 +934,7 @@ void Stage4()
 	//automation
 	int part_num=0;
 	//fix to float
-	int cap=0,ic=0,res=0,led=0;
+	static int cap=0,ic=0,res=0,led=0;
 	for(int i =0;i<part_count;i++)
 	{
 
@@ -936,8 +962,8 @@ void Stage4()
 			pickLed(led);
 			led++;
 		}
-		//Checkbottom();
-		testbottom();
+	Checkbottom();
+		//testbottom();
 		convert(parts[i].rotation,axis_r);
 		reversepcb();
 	    if (fabs(parts[i].x) > 0.0001)
@@ -974,14 +1000,16 @@ void Stage4()
 	        delay_ms(1500);
 	    }
 		checkpointcambot();
+		autoCalib();
 		checkpointfeeder();
 	}
 	//SetHome2();
+	SetHomeV2(1);
+	char *check = "finalcheck";
+		//transmit somthign trigger python
+		CDC_Transmit_FS(check, strlen((char*)check));
 }
-void testPlace()
-{
 
-}
 void testPick()
 {
 	int part_num=0;
@@ -1016,10 +1044,83 @@ void testPick()
 		//MotorY(21000,0);
 		//delay_ms(15000);
 		//checkpointfeeder();
+
 	}
 }
+void autoCalib()
+{
+	char *calib = "autocalib";
+		//clearBuffer();
+		//transmit somthign trigger python
+		CDC_Transmit_FS(calib, strlen((char*)calib));
+			clearBuffer();
+			char *end = "start";
+			 while (strcmp((char*)buffer, end) != 0)
+			  {
+				 if (strcmp(buffer, "forward") == 0)
+				 {
+				     MotorY(20, 0);
+				     clearBuffer();  // Clear buffer after processing command
+				     delay_ms(500);
 
+				 }
+				 else if (strcmp(buffer, "backward") == 0)
+				 {
+				     MotorY(20, 1);
+				     clearBuffer();
+				     delay_ms(500);
 
+				 }
+				 else if (strcmp(buffer, "left") == 0)
+				 {
+				     MotorX(20, 0);
+				     clearBuffer();  // Clear buffer after processing command
+				     delay_ms(500);
+				 }
+				 else if (strcmp(buffer, "right") == 0)
+				 {
+				     MotorX(20, 1);
+				     clearBuffer();  // Clear buffer after processing command
+				     delay_ms(500);
+
+				 }
+				 else if (strcmp(buffer, "up") == 0)
+				 {
+					 SetHomeZ();
+				     clearBuffer();  // Clear buffer after processing command
+				     delay_ms(500);
+				 }
+				 else if (strcmp(buffer, "down") == 0)
+				 {
+					if(!HAL_GPIO_ReadPin(LIMIT_Z_PORT,LIMIT_Z_PIN))
+					{
+					 MotorZ(7000, 0);
+				     clearBuffer();  // Clear buffer after processing command
+				     delay_ms(500);
+					}
+					 clearBuffer();
+				}
+
+			  }
+
+}
+void run2()
+{
+	Stage2();
+	Stage3();
+	Stage4();
+}
+void run()
+{
+	while(1)
+	{
+		Stage1();
+		Stage2();
+		Stage3();
+		Stage4();
+		clearBuffer();
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -1057,70 +1158,16 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
   /* USER CODE END 2 */
-//  SetHomeZ();
-
-  //centerPCB();
-  //SetHomeV2(1);
-  //delay_ms(20000);
-  listen("run");
-  SetHomeV2(0);
-  Joystick();
-  SetHomeZ();
-//  delay_ms(15000);
-//  SetHomeZ();
-  checkpointcambot();
-  checkpointfeeder();
-//  MotorZ(6500, 0);
-//  delay_ms(15000);
-//   SetHomeZ();
-
-  //checkpointcambot();
-  //checkpointfeeder();
-  //MotorZ(5000, 0);
-  //Stage1();
+ // SetHomeZ();
+  run();
 
 
-  // SetHome2();
-  //checkpointcambot();
-//  MotorZ(7000, 0);
-//  listen("run");
-//  Stage2();
-//  Stage3();
-//  Stage4();
- // pickCAP(0);
-//
-  //pickIC(0);
-//  pickCAP(0);
-//  pickCAP(1);
-//  pickCAP(2);
-
- // pickRes(0);
-//  pickLed(0);
-//  pickLed(1);
-//  Stage2();
- // Stage3();
- // Stage4();
-//  pickRes(0);
-//  pickRes(1);
-//  pickRes(2);
-//  pickRes(3);
-
-  // MotorY(21000,0);
- // MotorY(21000,0);
-//  pickRes(2);
-
-  // pickIC(0);
-
-//  testPlace();
-  // Stage1();
-  //Stage2();
-  //Stage3();
-  //Stage4();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  SetHomeZ();
+
+
 //	  delay_ms(5000);
 //	  MotorZ(7000, 0);
 //	  delay_ms(5000);
